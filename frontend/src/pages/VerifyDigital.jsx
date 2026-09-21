@@ -5,16 +5,19 @@ export const VerifyDigital = () => {
   const [view, setView] = useState('upload'); // 'upload' | 'loading' | 'results'
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
   const handleVerify = async () => {
     if (!file) return;
     setView('loading');
+    setError('');
     try {
       const data = await verifyDigital(file);
       setResult(data);
       setView('results');
     } catch (e) {
       console.error(e);
+      setError(e.message);
       setView('upload');
     }
   };
@@ -23,6 +26,7 @@ export const VerifyDigital = () => {
     <div className="max-w-3xl mx-auto p-6 font-sans">
       {view === 'upload' ? (
         <div className="flex flex-col items-center gap-8 mt-12">
+          {error && <p role="alert" className="text-red-700">{error}</p>}
           <div className="w-full">
             <DropZone label="Upload leaked PDF for verification" onFile={setFile} />
           </div>
@@ -47,7 +51,7 @@ export const VerifyDigital = () => {
             {result?.document && <div className="text-sm"><span className="text-muted-ink">Document:</span> {result.document}</div>}
           </div>
           <p className="text-sm text-muted-ink mt-6 text-center italic">
-            We extracted invisible watermark fingerprints to identify the source copy.
+            {result?.status === 'VERIFIED' ? 'The identifier matches a registry entry. This does not prove who disclosed the document or verify its contents.' : 'No registered copy was identified from this PDF.'}
           </p>
           <div className="mt-8 text-center">
             <button

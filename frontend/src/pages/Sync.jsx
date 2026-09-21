@@ -1,12 +1,11 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { fetchSyncStatus, triggerSync } from '../lib/api';
+import { fetchSyncStatus } from '../lib/api';
 
 export const Sync = () => {
   const [syncQueue, setSyncQueue] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
-  const [syncing, setSyncing] = React.useState(false);
 
   const loadStatus = () => {
     setLoading(true);
@@ -24,22 +23,11 @@ export const Sync = () => {
     loadStatus();
   }, []);
 
-  const handleForceSync = async () => {
-    setSyncing(true);
-    try {
-      await triggerSync();
-      loadStatus();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSyncing(false);
-    }
-  };
   const stats = {
-    synced: syncQueue.filter(i => i.sync_status === 'SYNCED').length,
-    pending: syncQueue.filter(i => i.sync_status === 'PENDING').length,
-    local: syncQueue.filter(i => i.sync_status === 'LOCAL').length,
-    conflicts: syncQueue.filter(i => i.sync_status === 'CONFLICT').length,
+    synced: syncQueue.filter(i => i.status === 'SYNCED').length,
+    pending: syncQueue.filter(i => i.status === 'PENDING').length,
+    local: syncQueue.filter(i => i.status === 'LOCAL').length,
+    conflicts: syncQueue.filter(i => i.status === 'CONFLICT').length,
   };
 
   if (loading && syncQueue.length === 0) return <div className="p-8">Loading Sync Status...</div>;
@@ -63,11 +51,11 @@ export const Sync = () => {
             {stats.synced} synced, {stats.pending} pending, {stats.local} local, {stats.conflicts} conflicts
           </p>
         </div>
-        <button 
+        <button
           onClick={handleForceSync}
-          disabled={syncing}
+          disabled={true}
           className="rounded-full px-6 py-2.5 bg-cyan text-white font-medium hover:bg-cyan/90 transition-colors shadow-sm disabled:opacity-50">
-          {syncing ? 'Syncing...' : 'Force Sync'}
+          Remote sync unavailable
         </button>
       </div>
 
@@ -76,25 +64,25 @@ export const Sync = () => {
         {syncQueue.map((item) => (
           <div key={item.event_id} className={cn(
             "surface p-4 rounded-xl shadow-sm border-l-4 flex items-center justify-between",
-            item.sync_status === 'SYNCED' ? "border-emerald" : 
-            (item.sync_status === 'CONFLICT' || item.sync_status === 'PENDING') ? "border-gold" : 
+            item.status === 'SYNCED' ? "border-emerald" :
+            (item.status === 'CONFLICT' || item.status === 'PENDING') ? "border-gold" :
             "border-deep-silver"
           )}>
-            
+
             <div className="flex items-center gap-6">
-              {item.sync_status === 'CONFLICT' && <AlertTriangle className="text-gold h-5 w-5" />}
+              {item.status === 'CONFLICT' && <AlertTriangle className="text-gold h-5 w-5" />}
               <div>
                 <div className="font-mono text-xs text-muted-ink mb-1">{item.event_id}</div>
-                <div className="font-medium text-ink">{item.action}</div>
+                <div className="font-medium text-ink">Local custody event</div>
               </div>
               <div className="pl-6 border-l border-silver">
                 <div className="text-xs text-muted-ink mb-1">Evidence ID</div>
-                <div className="font-mono text-sm">{item.evidence_id}</div>
+                <div className="font-mono text-sm">Pending remote configuration</div>
               </div>
             </div>
-            
-            <div className={cn("px-3 py-1 rounded-full text-xs font-bold tracking-wider border", getStatusColor(item.sync_status))}>
-              {item.sync_status}
+
+            <div className={cn("px-3 py-1 rounded-full text-xs font-bold tracking-wider border", getStatusColor(item.status))}>
+              {item.status}
             </div>
           </div>
         ))}

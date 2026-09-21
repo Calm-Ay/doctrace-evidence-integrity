@@ -29,9 +29,11 @@ def generate_report(evidence_id: str, db_path: str, out_path: str = None) -> str
     
     report.append(f"\nIntegrity Result: {verification['evidence_result'] if verification else 'PENDING VERIFICATION'}")
     report.append(f"Original fingerprint: {evidence['original_hash']}")
+    from doctrace.evidence.verification import check_chain
+    report.append(f"Current custody-chain check: {check_chain(events, evidence['original_hash'])}")
     if verification:
         report.append(f"Current fingerprint: {verification['observed_hash']}")
-        report.append(f"Custody chain: {verification['chain_result']}")
+        report.append(f"Custody chain at last file verification: {verification['chain_result']}")
         report.append(f"Verified: {verification['timestamp']}")
     
     report.append("\nCustody Timeline:")

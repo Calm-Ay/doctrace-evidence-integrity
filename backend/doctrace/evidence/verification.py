@@ -5,16 +5,31 @@ from typing import Dict, Any, Tuple
 from doctrace.evidence.storage import EvidenceDB
 from doctrace.evidence.hashing import stream_hash
 
+def check_chain(events, original_hash):
+    """Check recorded links independently of the file being verified."""
+    from doctrace.evidence.models import CustodyEvent
+    if not events or events[0]['event_type'] != 'COLLECTED':
+        return 'INVALID'
+    previous = None
+    for row in events:
+        event = CustodyEvent(**{k: v for k, v in row.items() if k != 'id'})
+        if (event.compute_hash() != event.event_hash or
+                event.previous_event_hash != previous or event.evidence_hash != original_hash):
+            return 'INVALID'
+        previous = event.event_hash
+    return 'VALID'
+
 def verify_evidence(filepath: str, evidence_id: str, db_path: str) -> Dict[str, Any]:
     if not db_path:
         db_path = os.getenv("DOCTRACE_DB", "doctrace.db")
     db = EvidenceDB(db_path)
     
     with db._get_connection() as conn:
+        evidence = conn.execute("SELECT original_hash FROM evidence WHERE evidence_id=?", (evidence_id,)).fetchone()
         cursor = conn.execute("SELECT * FROM custody_events WHERE evidence_id = ? ORDER BY id ASC", (evidence_id,))
         events = [dict(row) for row in cursor.fetchall()]
         
-    if not events:
+    if not evidence:
         return {
             "evidence_result": "NOT_FOUND",
             "chain_result": "INVALID",
@@ -23,26 +38,10 @@ def verify_evidence(filepath: str, evidence_id: str, db_path: str) -> Dict[str, 
             "actual_hash": None
         }
         
-    chain_result = "VALID"
-    expected_hash = None
+    expected_hash = evidence['original_hash']
+    chain_result = check_chain(events, expected_hash)
     
     # Walk the chain to verify hashes
-    prev_hash = None
-    for event_dict in events:
-        from doctrace.evidence.models import CustodyEvent
-        # Reconstruct event for hashing
-        ev = CustodyEvent(**{k: v for k, v in event_dict.items() if k != 'id'})
-        computed_hash = ev.compute_hash()
-        
-        if computed_hash != event_dict['event_hash']:
-            chain_result = "INVALID"
-            break
-        if event_dict['previous_event_hash'] != prev_hash:
-            chain_result = "INVALID"
-            break
-            
-        prev_hash = computed_hash
-        expected_hash = event_dict['evidence_hash']
 
     # Verify file integrity
     actual_hash = None

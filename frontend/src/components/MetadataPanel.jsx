@@ -1,5 +1,4 @@
 import React from 'react';
-import { cn } from '../lib/utils';
 
 export function MetadataPanel({ items, metadata }) {
   // Support both items array [{label, value}] and metadata object {key: value}

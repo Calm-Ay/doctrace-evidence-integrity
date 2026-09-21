@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { cn } from '../lib/utils';
 import { formatDateTime } from '../lib/utils';
-import { fetchRegistry } from '../lib/api';
+import { fetchRegistry, downloadText } from '../lib/api';
 import { Search, Download } from 'lucide-react';
 
 export const Registry = () => {
@@ -9,13 +8,15 @@ export const Registry = () => {
   const [filterDoc, setFilterDoc] = useState('All Documents');
   const [registry, setRegistry] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   React.useEffect(() => {
     fetchRegistry().then(data => {
-      setRegistry(data);
+      setRegistry(data.map(r => ({...r, document:r.doc_name})));
       setLoading(false);
     }).catch(err => {
       console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   }, []);
@@ -35,6 +36,7 @@ export const Registry = () => {
   }, [search, filterDoc, registry]);
 
   if (loading) return <div className="p-8">Loading Registry...</div>;
+  if (error) return <div role="alert" className="p-8">{error}</div>;
 
   return (
     <div className="w-full bg-white surface border border-silver rounded-xl p-6 font-sans">
@@ -61,7 +63,11 @@ export const Registry = () => {
             ))}
           </select>
         </div>
-        <button className="bg-canvas border border-silver text-ink px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-silver/20 transition-colors">
+        <button onClick={() => {
+          const keys = ['doc_name','recipient_id','name','email','bitstring','timestamp'];
+          const escape = value => '"' + String(value ?? '').replace(/^[=+@-]/, "'$&").replaceAll('"','""') + '"';
+          downloadText([keys.join(','), ...filteredRegistry.map(r => keys.map(k => escape(r[k])).join(','))].join('\r\n'), 'doctrace-registry.csv', 'text/csv');
+        }} className="bg-canvas border border-silver text-ink px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-silver/20 transition-colors">
           <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>

@@ -1,9 +1,9 @@
-import random
+import secrets
 from typing import List, Tuple, Dict
 
 def generate_random_bitstring(length: int) -> str:
     """Generates a random bitstring of the specified length."""
-    return "".join(random.choices(["0", "1"], k=length))
+    return "".join(secrets.choice('01') for _ in range(length))
 
 def string_to_bits(s: str) -> List[int]:
     """Converts a binary string ('10101') to a list of integers [1, 0, 1, 0, 1]."""

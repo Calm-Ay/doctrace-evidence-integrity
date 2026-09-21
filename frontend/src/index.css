@@ -98,6 +98,9 @@
 
 /* ── Print ── */
 @media print {
+  header, nav, aside { display: none !important; }
+  .ml-\[72px\] { margin-left: 0 !important; }
+  tr { break-inside: avoid; }
   .glass-nav, .no-print { display: none !important; }
   body { background: white !important; }
   .print-page { 

@@ -1,16 +1,35 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { StatusRing } from '../components/StatusRing';
 import { EvidenceIdBadge } from '../components/EvidenceIdBadge';
 import { HashDisplay } from '../components/HashDisplay';
 import { MetadataPanel } from '../components/MetadataPanel';
 import { CustodyChronicle } from '../components/CustodyChronicle';
 import { formatBytes, formatDateTime } from '../lib/utils';
-import { fetchEvidenceDetail } from '../lib/api';
+import { fetchEvidenceDetail, logCustody, getReport, downloadText } from '../lib/api';
 import { cn } from '../lib/utils';
 
 export const EvidenceDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [error, setError] = React.useState('');
+  const [showLog, setShowLog] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [action, setAction] = React.useState('TRANSFERRED');
+  const [actor, setActor] = React.useState('');
+  const [recipient, setRecipient] = React.useState('');
+  const [notes, setNotes] = React.useState('');
+  async function saveEvent(e) {
+    e.preventDefault(); setSaving(true); setError('');
+    try {
+      await logCustody(id, {action, actor_id:actor, recipient_id:recipient, notes});
+      setData(await fetchEvidenceDetail(id)); setShowLog(false);
+    } catch (err) {setError(err.message);} finally {setSaving(false);}
+  }
+  async function exportReport() {
+    try {const res = await getReport(id); downloadText(res.report, `${id}-report.txt`);}
+    catch (err) {setError(err.message);}
+  }
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -19,18 +38,18 @@ export const EvidenceDetail = () => {
       setData(res);
       setLoading(false);
     }).catch(err => {
-      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   }, [id]);
 
   if (loading) return <div className="p-8">Loading Evidence...</div>;
-  if (!data) return <div className="p-8">Evidence not found</div>;
+  if (!data) return <div className="p-8">{error || 'Evidence not found'}</div>;
 
   const evidence = data;
   const events = data.events || [];
 
-  const ringStatus = evidence.status === 'VERIFIED' ? 'verified' : evidence.status === 'MISMATCH' ? 'mismatch' : 'pending';
+  const ringStatus = evidence.status === 'MATCH' && evidence.chain_status === 'VALID' ? 'verified' : evidence.status === 'MISMATCH' || evidence.chain_status === 'INVALID' ? 'mismatch' : 'pending';
 
   return (
     <div className="grid grid-cols-12 gap-8 p-8">
@@ -56,20 +75,30 @@ export const EvidenceDetail = () => {
         </div>
 
         <div className="flex gap-4">
-          <button className="rounded-full px-6 py-2.5 bg-cyan text-white font-medium hover:bg-cyan/90 transition-colors shadow-sm">
+          <button onClick={() => navigate(`/verify?evidence=${encodeURIComponent(id)}`)} className="rounded-full px-6 py-2.5 bg-cyan text-white font-medium hover:bg-cyan/90 transition-colors shadow-sm">
             Verify Now
           </button>
-          <button className="rounded-full px-6 py-2.5 surface text-ink font-medium hover:bg-canvas transition-colors shadow-sm">
+          <button onClick={() => setShowLog(!showLog)} className="rounded-full px-6 py-2.5 surface text-ink font-medium hover:bg-canvas transition-colors shadow-sm">
             Log Action
           </button>
-          <button className="rounded-full px-6 py-2.5 surface text-ink font-medium hover:bg-canvas transition-colors shadow-sm">
+          <button onClick={() => navigate(`/report?evidence=${encodeURIComponent(id)}`)} className="rounded-full px-6 py-2.5 surface text-ink font-medium hover:bg-canvas transition-colors shadow-sm">
             Generate Report
           </button>
-          <button className="rounded-full px-6 py-2.5 surface text-ink font-medium hover:bg-canvas transition-colors shadow-sm">
+          <button onClick={exportReport} className="rounded-full px-6 py-2.5 surface text-ink font-medium hover:bg-canvas transition-colors shadow-sm">
             Export
           </button>
         </div>
 
+        {error && <p role="alert" className="text-red-700">{error}</p>}
+        {showLog && <form onSubmit={saveEvent} className="surface rounded-xl p-6 space-y-4">
+          <h3>Record custody action</h3>
+          <label className="block">Action <select aria-label="Action" value={action} onChange={e => setAction(e.target.value)}>{['TRANSFERRED','ACCESSED','STORED','RELEASED'].map(a => <option key={a}>{a}</option>)}</select></label>
+          <label className="block">Actor <input aria-label="Actor" required value={actor} onChange={e => setActor(e.target.value)} className="border rounded p-2" /></label>
+          <label className="block">Recipient <input aria-label="Recipient" required={action === 'TRANSFERRED'} value={recipient} onChange={e => setRecipient(e.target.value)} className="border rounded p-2" /></label>
+          <label className="block">Notes <input aria-label="Notes" value={notes} onChange={e => setNotes(e.target.value)} className="border rounded p-2" /></label>
+          <button disabled={saving} className="bg-cyan text-white rounded-full p-3">{saving ? 'Saving…' : 'Save Action'}</button>
+        </form>}
+        <p>Current custody chain: {evidence.chain_status}</p>
         <div className="surface rounded-2xl p-6 shadow-sm">
           <MetadataPanel 
             metadata={{

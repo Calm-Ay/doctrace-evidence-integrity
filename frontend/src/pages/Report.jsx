@@ -1,13 +1,21 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { formatBytes, formatDateTime } from '../lib/utils';
 import { fetchEvidenceList, fetchEvidenceDetail } from '../lib/api';
 
 export const Report = () => {
+  const [params, setParams] = useSearchParams();
+  const selected = params.get('evidence');
+  const [records, setRecords] = React.useState([]);
+  const [error, setError] = React.useState('');
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    setLoading(true); setError('');
     fetchEvidenceList().then(list => {
+      setRecords(list);
+      if (selected) return fetchEvidenceDetail(selected);
       if (list.length > 0) {
         return fetchEvidenceDetail(list[0].evidence_id);
       }
@@ -16,12 +24,13 @@ export const Report = () => {
       setData(res);
       setLoading(false);
     }).catch(err => {
-      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
-  }, []);
+  }, [selected]);
 
   if (loading) return <div className="p-8">Loading Report...</div>;
+  if (error) return <div role="alert" className="p-8">{error}</div>;
   if (!data) return <div className="p-8">No evidence found to report on.</div>;
 
   const ev = data;
@@ -31,6 +40,7 @@ export const Report = () => {
 
   return (
     <div className="max-w-[800px] mx-auto bg-white p-16 surface print-page text-ink my-8 shadow-sm">
+      <label className="no-print block mb-6">Evidence <select aria-label="Report evidence" value={ev.evidence_id} onChange={e => setParams({evidence:e.target.value})}>{records.map(r => <option key={r.evidence_id} value={r.evidence_id}>{r.original_filename} — {r.evidence_id}</option>)}</select></label>
       <div className="flex justify-between items-start mb-12 border-b border-silver pb-6">
         <div>
           <h1 className="font-heading text-4xl font-bold tracking-tight">DOCTRACE</h1>
@@ -38,10 +48,7 @@ export const Report = () => {
         </div>
         <div className="no-print flex gap-3">
           <button className="rounded-full px-4 py-2 text-sm bg-cyan text-white hover:bg-cyan/90 font-medium" onClick={() => window.print()}>
-            Print
-          </button>
-          <button className="rounded-full px-4 py-2 text-sm surface border border-silver font-medium hover:bg-canvas">
-            Download PDF
+            Print / Save as PDF
           </button>
         </div>
       </div>
@@ -62,7 +69,7 @@ export const Report = () => {
         <h3 className="font-heading text-lg font-semibold uppercase tracking-wider text-muted-ink mb-4 border-b border-canvas pb-2">Integrity Status</h3>
         <div className="mb-4">
           <div className={`text-lg font-bold mb-2 ${matched ? 'text-emerald' : 'text-gold'}`}>{verification ? `${verification.evidence_result} / CHAIN ${verification.chain_result}` : 'PENDING VERIFICATION'}</div>
-          <p className="text-sm">{verification ? 'This status reflects the most recent verification performed by Doctrace.' : 'Verify the evidence file to create an integrity result.'}</p>
+          <p className="text-sm">{verification ? `Last file verification: ${formatDateTime(verification.timestamp)}. Current custody-chain check: ${ev.chain_status}.` : `Not yet file-verified. Current custody-chain check: ${ev.chain_status}.`}</p>
         </div>
         <div className="bg-canvas p-4 rounded text-xs font-mono break-all space-y-4">
           <div>

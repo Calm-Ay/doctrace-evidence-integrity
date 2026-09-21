@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { cn } from '../lib/utils';
 
 export function HeaderBar({ title }) {
   const [time, setTime] = useState(new Date());
@@ -17,7 +16,7 @@ export function HeaderBar({ title }) {
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2 px-3 py-1 bg-canvas rounded-full border border-silver">
           <div className="w-2 h-2 rounded-full bg-cyan"></div>
-          <span className="text-xs font-semibold tracking-wider text-ink">SYNCED</span>
+          <span className="text-xs font-semibold tracking-wider text-ink">LOCAL DEMO</span>
         </div>
         <div className="font-mono text-muted-ink text-sm">
           {formattedTime}

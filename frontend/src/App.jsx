@@ -17,15 +17,6 @@ import { VerifyDigital } from './pages/VerifyDigital';
 import { IdentifyPhoto } from './pages/IdentifyPhoto';
 import { Registry } from './pages/Registry';
 
-const evidencePages = {
-  '/dashboard': { title: 'Cases Dashboard', component: Dashboard },
-  '/evidence': { title: 'Evidence Register', component: EvidenceList },
-  '/intake': { title: 'Evidence Intake', component: Intake },
-  '/verify': { title: 'Verification', component: Verification },
-  '/report': { title: 'Court Report', component: Report },
-  '/sync': { title: 'Sync Status', component: Sync },
-};
-
 function App() {
   return (
     <BrowserRouter>

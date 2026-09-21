@@ -22,6 +22,8 @@ Run the commands in TESTING.md for reproducible regression results. Tests use te
 
 The production frontend build was checked. A full visual browser walkthrough could not be performed: the provided browser blocked this environment's localhost URL. Before recording, run the manual checklist in TESTING.md on the machine used for the demo.
 
+The older standalone photo/structural experiment scripts are not reliable regression tests. Full legacy-suite collection crashed in this environment while importing Pillow through the photo/OCR dependency path. They are retained for research, not presented as validated demo functionality. The old structural test contains a placeholder assertion and does not establish a working photo round-trip.
+
 ## Remaining limitations
 
 - Local, single-user prototype; no authentication, authorization, external timestamping or signed/externally anchored custody ledger. Do not expose publicly or use real sensitive evidence.

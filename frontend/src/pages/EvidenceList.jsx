@@ -8,6 +8,7 @@ import { fetchEvidenceList } from '../lib/api';
 export const EvidenceList = () => {
   const [evidenceList, setEvidenceList] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
 
   React.useEffect(() => {
     fetchEvidenceList().then(data => {
@@ -15,11 +16,13 @@ export const EvidenceList = () => {
       setLoading(false);
     }).catch(err => {
       console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   }, []);
 
   if (loading) return <div className="p-8">Loading...</div>;
+  if (error) return <div role="alert" className="p-8">{error}</div>;
 
   return (
     <div className="p-8">

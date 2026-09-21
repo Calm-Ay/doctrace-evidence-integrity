@@ -97,7 +97,8 @@ def stamp(original_pdf, recipients, out, db_path, bits):
             name = row['name']
             email = row['email']
             
-            bitstring = generate_random_bitstring(bits)
+            existing = next((copy for copy in registry.get_copies_by_doc(doc_hash) if copy['recipient_id'] == recipient_id), None)
+            bitstring = existing['bitstring'] if existing else generate_random_bitstring(bits)
             out_pdf = os.path.join(out, f"recipient_{recipient_id}.pdf")
             temp_pdf1 = os.path.join(out, f".temp1_{recipient_id}.pdf")
             temp_pdf2 = os.path.join(out, f".temp2_{recipient_id}.pdf")
@@ -108,7 +109,8 @@ def stamp(original_pdf, recipients, out, db_path, bits):
             if zw_stamper.stamp(norm_pdf, temp_pdf1, bitstring):
                 if ms_stamper.stamp(temp_pdf1, temp_pdf2, bitstring):
                     if struct_stamper.stamp_with_map(temp_pdf2, out_pdf, bitstring, layout_map_json):
-                        registry.add_copy(doc_hash, doc_name, recipient_id, name, email, bitstring)
+                        if not existing:
+                            registry.add_copy(doc_hash, doc_name, recipient_id, name, email, bitstring)
                         success_count += 1
                     else:
                         console.print(f"[red]Failed structural stamp for {recipient_id}[/red]")
@@ -466,7 +468,10 @@ def sync(db_path):
     if not db_path:
         db_path = os.getenv("DOCTRACE_DB", "doctrace.db")
     console.print("[bold yellow]Syncing offline events...[/bold yellow]")
-    count = sync_events(db_path)
+    try:
+        count = sync_events(db_path)
+    except NotImplementedError as exc:
+        raise click.ClickException(str(exc))
     console.print(f"[bold green]Successfully synced {count} events.[/bold green]")
 
 @evidence.command()

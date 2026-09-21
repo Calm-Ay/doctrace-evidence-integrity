@@ -1,5 +1,4 @@
 import React from 'react';
-import { cn } from '../lib/utils';
 
 export function ProgressRing({ progress = 0, size = 120 }) {
   const strokeWidth = 8;

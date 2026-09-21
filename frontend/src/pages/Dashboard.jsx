@@ -2,35 +2,39 @@ import React from 'react';
 import { StatusRing } from '../components/StatusRing';
 import { StatusPill } from '../components/StatusPill';
 import { CustodyChronicle } from '../components/CustodyChronicle';
-import { fetchCases } from '../lib/api';
-import { formatDateTime } from '../lib/utils';
+import { fetchCases, fetchEvidenceList } from '../lib/api';
 export const Dashboard = () => {
   const [cases, setCases] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
-  const recentEvents = []; // API currently does not provide a global recent events endpoint
+  const [evidence, setEvidence] = React.useState([]);
+  const [error, setError] = React.useState('');
+  const recentEvents = evidence.flatMap(e => e.events || []).sort((a,b) => b.timestamp.localeCompare(a.timestamp)).slice(0,5).reverse();
+  const matches = evidence.filter(e => e.status === 'MATCH' && e.chain_status === 'VALID').length;
 
   React.useEffect(() => {
-    fetchCases().then(data => {
-      setCases(data);
+    Promise.all([fetchCases(), fetchEvidenceList()]).then(([data, records]) => {
+      setCases(data); setEvidence(records);
       setLoading(false);
     }).catch(err => {
       console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   }, []);
 
   if (loading) return <div className="p-8">Loading Dashboard...</div>;
+  if (error) return <div role="alert" className="p-8">{error}</div>;
 
   return (
     <div className="grid grid-cols-12 gap-8 p-8">
       <div className="col-span-8 flex flex-col gap-8">
         <div className="flex items-center gap-6 p-6 bg-white border border-silver rounded-2xl shadow-sm">
-          <StatusRing size="hero" status="verified">
-            <span className="font-heading text-4xl font-bold text-cyan">98%</span>
+          <StatusRing size="hero" status={evidence.length && matches === evidence.length ? 'verified' : 'pending'}>
+            <span className="font-heading text-4xl font-bold text-cyan">{evidence.length}</span>
           </StatusRing>
           <div>
-            <h2 className="font-heading text-2xl text-ink font-semibold">System Health</h2>
-            <p className="text-muted-ink mt-1">98% of evidence verified and synced.</p>
+            <h2 className="font-heading text-2xl text-ink font-semibold">Registered Evidence</h2>
+            <p className="text-muted-ink mt-1">{matches} with a latest MATCH result and a currently valid custody chain. Storage is local; remote sync is unavailable.</p>
           </div>
         </div>
         
@@ -55,7 +59,7 @@ export const Dashboard = () => {
                   <td className="py-4 px-6 text-ink">{c.title}</td>
                   <td className="py-4 px-6 text-muted-ink">{c.evidenceCount}</td>
                   <td className="py-4 px-6">
-                    <StatusPill variant={c.health || 'cyan'}>{c.health === 'cyan' ? 'Healthy' : c.health === 'emerald' ? 'Good' : 'Attention'}</StatusPill>
+                    <StatusPill variant="silver">{c.health}</StatusPill>
                   </td>
                   <td className="py-4 px-6 text-muted-ink text-sm">{c.lastActivity || 'N/A'}</td>
                 </tr>

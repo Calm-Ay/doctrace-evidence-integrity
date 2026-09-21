@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { ClipboardCopy, Check, AlertCircle } from 'lucide-react';
-import { cn } from '../lib/utils';
 
 function HashBlock({ label, hash }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(hash);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(hash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { setCopied(false); }
   };
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 min-w-0">
       <div className="text-xs font-semibold text-muted-ink uppercase tracking-wider mb-2">{label}</div>
       <div className="flex items-center justify-between bg-canvas p-3 rounded-lg border border-silver">
-        <span className="font-mono text-sm text-ink truncate mr-3">{hash}</span>
-        <button onClick={handleCopy} className="text-muted-ink hover:text-ink transition-colors flex-shrink-0">
+        <span className="font-mono text-xs text-ink break-all mr-3">{hash || 'Not yet verified'}</span>
+        <button aria-label={`Copy ${label}`} disabled={!hash} onClick={handleCopy} className="text-muted-ink hover:text-ink transition-colors flex-shrink-0">
           {copied ? <Check size={16} className="text-emerald" /> : <ClipboardCopy size={16} />}
         </button>
       </div>
@@ -42,7 +43,7 @@ export function HashDisplay({ original, current, originalHash, currentHash, mode
         <HashBlock label="Current Fingerprint" hash={currVal} />
       </div>
       <div className="flex items-center justify-center">
-        {match ? (
+        {!origVal || !currVal ? <span className="text-muted-ink text-sm">Pending verification</span> : match ? (
           <div className="flex items-center gap-2 text-emerald text-sm font-medium bg-emerald/10 px-3 py-1 rounded-full border border-emerald/20">
             <Check size={16} /> Matches Original
           </div>

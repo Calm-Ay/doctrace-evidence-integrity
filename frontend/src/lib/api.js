@@ -1,112 +1,31 @@
-const API_BASE = "http://localhost:8000/api";
-
-async function jsonOrThrow(res) {
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || `Request failed (${res.status})`);
+const API_BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api').replace(/\/$/, '');
+async function request(path, options) {
+  const res = await fetch(`${API_BASE}${path}`, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail) || `Request failed (${res.status})`);
   return data;
 }
-
-export async function fetchCases() {
-  const res = await fetch(`${API_BASE}/cases`);
-  return res.json();
+function upload(path, file, fields = {}) {
+  const body = new FormData(); body.append('file', file);
+  for (const [key, value] of Object.entries(fields)) if (value) body.append(key, value);
+  return request(path, { method: 'POST', body });
 }
-
-export async function fetchEvidenceList() {
-  const res = await fetch(`${API_BASE}/evidence`);
-  return res.json();
-}
-
-export async function fetchEvidenceDetail(id) {
-  const res = await fetch(`${API_BASE}/evidence/${id}`);
-  return res.json();
-}
-
-export async function intakeEvidence(file, caseId, collectorId, deviceId) {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (caseId) formData.append("case_id", caseId);
-  if (collectorId) formData.append("collector_id", collectorId);
-  if (deviceId) formData.append("device_id", deviceId);
-  
-  const res = await fetch(`${API_BASE}/evidence/intake`, {
-    method: "POST",
-    body: formData
-  });
-  return res.json();
-}
-
-export async function verifyEvidence(id, file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch(`${API_BASE}/evidence/${id}/verify`, {
-    method: "POST",
-    body: formData
-  });
-  return res.json();
-}
-
-export async function logCustody(id, data) {
-  const res = await fetch(`${API_BASE}/evidence/${id}/custody`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  });
-  return res.json();
-}
-
-export async function getReport(id) {
-  const res = await fetch(`${API_BASE}/evidence/${id}/report`);
-  return res.json();
-}
-
-export async function fetchSyncStatus() {
-  const res = await fetch(`${API_BASE}/sync/status`);
-  return res.json();
-}
-
-export async function triggerSync() {
-  const res = await fetch(`${API_BASE}/sync`, { method: "POST" });
-  return res.json();
-}
-
-export async function fetchRegistry() {
-  const res = await fetch(`${API_BASE}/provenance/registry`);
-  return res.json();
-}
-
-export async function stampDocument(file, recipientId, type="digital") {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("recipient_id", recipientId);
-  formData.append("watermark_type", type);
-  const res = await fetch(`${API_BASE}/provenance/stamp`, {
-    method: "POST",
-    body: formData
-  });
-  return jsonOrThrow(res);
-}
-
-export async function verifyDigital(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("watermark_type", "digital");
-  const res = await fetch(`${API_BASE}/provenance/verify`, {
-    method: "POST",
-    body: formData
-  });
-  return jsonOrThrow(res);
-}
-
-export function stampedDownloadUrl(path) {
-  return path?.startsWith("http") ? path : `http://localhost:8000${path}`;
-}
-
-export async function identifyPhoto(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch(`${API_BASE}/provenance/identify`, {
-    method: "POST",
-    body: formData
-  });
-  return res.json();
+export const fetchCases = () => request('/cases');
+export const fetchEvidenceList = () => request('/evidence');
+export const fetchEvidenceDetail = id => request(`/evidence/${encodeURIComponent(id)}`);
+export const intakeEvidence = (file, caseId, collectorId, deviceId, notes) => upload('/evidence/intake', file, {case_id:caseId, collector_id:collectorId, device_id:deviceId, notes});
+export const verifyEvidence = (id, file) => upload(`/evidence/${encodeURIComponent(id)}/verify`, file);
+export const logCustody = (id, data) => request(`/evidence/${encodeURIComponent(id)}/custody`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+export const getReport = id => request(`/evidence/${encodeURIComponent(id)}/report`);
+export const fetchSyncStatus = () => request('/sync/status');
+export const triggerSync = () => request('/sync', {method:'POST'});
+export const fetchRegistry = () => request('/provenance/registry');
+export const stampDocument = (file, recipientId, type='digital') => upload('/provenance/stamp', file, {recipient_id:recipientId, watermark_type:type});
+export const verifyDigital = file => upload('/provenance/verify', file, {watermark_type:'digital'});
+export const identifyPhoto = file => upload('/provenance/identify', file);
+export const stampedDownloadUrl = path => new URL(path, new URL(API_BASE, window.location.href)).href;
+export function downloadText(text, filename, type='text/plain') {
+  const url = URL.createObjectURL(new Blob([text], {type}));
+  const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

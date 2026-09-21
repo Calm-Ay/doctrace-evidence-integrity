@@ -44,6 +44,7 @@ export function CustodyChronicle({ events }) {
                 {event.notes}
               </p>
             )}
+            <details className="text-xs mt-3 break-all"><summary>Event hashes</summary><p>Event: {event.event_hash}</p><p>Previous: {event.previous_event_hash || 'Genesis'}</p></details>
           </div>
         );
       })}

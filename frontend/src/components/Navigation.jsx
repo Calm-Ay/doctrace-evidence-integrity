@@ -30,6 +30,7 @@ function NavItem({ to, icon: Icon, label }) {
       onMouseLeave={() => setHover(false)}
     >
       <NavLink
+        aria-label={label}
         to={to}
         className={({ isActive }) => cn(
           "w-10 h-10 rounded-full flex items-center justify-center transition-colors text-muted-ink hover:text-ink hover:bg-silver/30",
@@ -74,6 +75,7 @@ export function Navigation() {
           onMouseLeave={() => setSyncHover(false)}
         >
           <NavLink
+            aria-label="Sync status"
             to="/sync"
             className={({ isActive }) => cn(
               "w-10 h-10 rounded-full flex items-center justify-center transition-colors text-muted-ink hover:text-ink hover:bg-silver/30",
@@ -94,12 +96,12 @@ export function Navigation() {
           onMouseEnter={() => setSettingsHover(true)}
           onMouseLeave={() => setSettingsHover(false)}
         >
-          <button className="w-10 h-10 rounded-full flex items-center justify-center transition-colors text-muted-ink hover:text-ink hover:bg-silver/30">
+          <button disabled aria-label="Settings unavailable in this demo" className="w-10 h-10 rounded-full flex items-center justify-center text-muted-ink opacity-40">
             <Settings size={20} />
           </button>
           {settingsHover && (
             <div className="absolute left-[68px] bg-ink text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-md z-50">
-              Settings
+              Settings unavailable in this demo
             </div>
           )}
         </div>

@@ -53,7 +53,7 @@ class Registry:
         """Adds a new stamped copy to the registry."""
         with self._get_connection() as conn:
             conn.execute("""
-                INSERT OR REPLACE INTO copies (doc_hash, doc_name, recipient_id, name, email, bitstring)
+                INSERT INTO copies (doc_hash, doc_name, recipient_id, name, email, bitstring)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (doc_hash, doc_name, recipient_id, name, email, bitstring))
             conn.commit()

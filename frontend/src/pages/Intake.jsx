@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { DropZone } from '../components/DropZone';
 import { ProgressRing } from '../components/ProgressRing';
 import { StatusRing } from '../components/StatusRing';
@@ -17,6 +18,7 @@ export const Intake = () => {
   const [notes, setNotes] = useState('');
   const [result, setResult] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (step === 2 && !isSubmitting) {
@@ -38,12 +40,14 @@ export const Intake = () => {
   const handleSeal = async () => {
     if (!file) return;
     setIsSubmitting(true);
+    setError('');
     try {
-      const res = await intakeEvidence(file, caseId, collectorName, deviceId);
+      const res = await intakeEvidence(file, caseId, collectorName, deviceId, notes);
       setResult(res);
       setStep(4);
     } catch (err) {
       console.error(err);
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -51,7 +55,7 @@ export const Intake = () => {
 
   const steps = [
     { id: 1, title: 'Select File' },
-    { id: 2, title: 'Hash & Verify' },
+    { id: 2, title: 'Selected' },
     { id: 3, title: 'Metadata' },
     { id: 4, title: 'Seal' }
   ];
@@ -84,10 +88,11 @@ export const Intake = () => {
 
       <div className="flex-1">
         <div className="surface p-8 rounded-3xl shadow-sm min-h-[400px] flex flex-col justify-center">
+          {error && <p role="alert" className="text-red-700 mb-4">{error}</p>}
           {step === 1 && (
             <div className="animate-fade-in-up">
               <h2 className="font-heading text-2xl mb-6">Select Evidence</h2>
-              <DropZone onFile={(f) => { setFile(f); setStep(2); }} label="Drag evidence file here or browse" />
+              <DropZone onFile={(f) => { setFile(f); setStep(3); }} label="Drag evidence file here or browse" />
             </div>
           )}
 
@@ -101,7 +106,7 @@ export const Intake = () => {
 
           {step === 3 && (
             <div className="animate-fade-in-up">
-              <h2 className="font-heading text-2xl mb-6">Enter Metadata</h2>
+              <h2 className="font-heading text-2xl mb-6">Enter Metadata</h2><p className="mb-4">Selected: {file?.name}. SHA-256 is calculated by the server when you register the file.</p>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-ink mb-1">Case ID</label>
@@ -134,7 +139,8 @@ export const Intake = () => {
                 <Check size={32} className="text-emerald" />
               </StatusRing>
               <h2 className="font-heading text-3xl font-bold mt-6 mb-2 text-ink">Evidence Sealed</h2>
-              <p className="text-muted-ink mb-8">The digital evidence has been cryptographically sealed and logged.</p>
+              <p className="text-muted-ink mb-8">{file?.name}: SHA-256 registered; initial COLLECTED event recorded. Keep the original file — Doctrace stores its fingerprint, not the file.</p>
+              <Link className="text-cyan underline mb-4" to={`/evidence/${result?.evidence?.evidence_id}`}>Open evidence details</Link>
               
               <div className="bg-canvas p-6 rounded-2xl w-full max-w-md border border-silver">
                 <div className="text-sm text-muted-ink mb-2">Generated ID</div>
